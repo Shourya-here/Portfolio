@@ -195,7 +195,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'Biometric Pipelines',
         'AI for Healthcare',
         'IoT Intelligence',
-        'Secure APIs'
+        'Secure APIs',
+        'Data Science Solutions'
     ];
     let phraseIndex = 0;
     let charIndex = 0;
@@ -441,121 +442,340 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(typeEffect, 2200);
 
     // ==========================================
-    // Custom Chatbot Logic
+    // Custom Chatbot Logic — Premium NLP v3
     // ==========================================
+    const chatbotWidget = document.getElementById('chatbotWidget');
     const chatToggle = document.getElementById('chatToggle');
-    const chatbotWidget = document.querySelector('.chatbot-widget');
+    const chatWindow = document.getElementById('chatWindow');
     const chatInput = document.getElementById('chatInput');
     const chatSendBtn = document.getElementById('chatSendBtn');
     const chatMessages = document.getElementById('chatMessages');
-    const suggestionBtns = document.querySelectorAll('.suggestion-btn');
     const chatNotification = document.getElementById('chatNotification');
+    const chatClearBtn = document.getElementById('chatClearBtn');
+    const chatDynamicSuggestions = document.getElementById('chatDynamicSuggestions');
+    const chatCharCount = document.getElementById('chatCharCount');
+    const chatMsgCount = document.getElementById('chatMsgCount');
+    const chatUnreadBadge = document.getElementById('chatUnreadBadge');
+    
+    // Conversation State
+    let state = {
+        history: [],
+        currentTopic: 'general', // general, niyuktisetu, irrigo, skills, research, contact, education
+        unreadCount: 0,
+        isThinking: false
+    };
 
-    // Show notification after 4 seconds
-    setTimeout(() => {
-        if (!chatbotWidget.classList.contains('open')) {
-            chatNotification.classList.add('show');
-        }
-    }, 4000);
-
-    // Predefined QA Dataset (Keyword-based matching)
-    const qaDatabase = [
+    // Predefined QA Dataset (Advanced Matcher)
+    const qaDataset = [
         {
-            keywords: ['hi', 'hello', 'hey', 'start', 'greetings', 'morning', 'evening'],
-            answer: "Hello! I'm Shourya's virtual assistant. I'm here to help you navigate his portfolio. Ask me about his <strong>skills</strong>, <strong>projects</strong>, <strong>achievements</strong>, or how to <strong>contact</strong> him."
+            id: 'greeting',
+            topics: ['general'],
+            keywords: ['hi', 'hello', 'hey', 'start', 'greetings', 'morning', 'evening', 'yo', 'sup'],
+            variations: [
+                "Hello! I'm Shourya's AI assistant. 🌟 I can guide you through his projects, research, technical skills, or help you contact him. What are you looking for today?",
+                "Hi there! Nice to meet you. 👋 I'm here to answer any questions about Shourya's ML engineering background and research publications. How can I help you?",
+                "Hey! Welcome to Shourya's portfolio. I'm his virtual assistant. Let me know what you'd like to explore: projects, skills, certifications, or publications!"
+            ],
+            chips: ["Tell me about NiyuktiSetu 🔐", "What are his technical skills? 💻", "Show me his research papers 📄", "How can I contact him? 📱"]
         },
         {
-            keywords: ['who', 'you', 'identity', 'bot', 'assistant'],
-            answer: "I'm a custom-built AI assistant designed to provide information about Shourya's professional background, skills, and projects. Type a question or use the suggestion buttons below to get started!"
+            id: 'about_bot',
+            topics: ['general'],
+            keywords: ['who', 'you', 'identity', 'bot', 'assistant', 'name', 'purpose'],
+            variations: [
+                "I'm Shourya's virtual concierge, a custom NLP assistant designed to help recruiters and collaborators learn more about his work in machine learning and computer vision. Ask me anything!"
+            ],
+            chips: ["Tell me about his projects 🚀", "Show me his resume info 📄"]
         },
         {
-            keywords: ['skill', 'tech', 'stack', 'language', 'program', 'arsenal', 'tools', 'know', 'python', 'sql'],
-            answer: "Shourya is a Machine Learning Engineer with a strong technical arsenal:<br>• <strong>Core</strong>: Python, SQL, C++, Data Structures & Algorithms<br>• <strong>ML Frameworks</strong>: PyTorch, TensorFlow, Scikit-learn, HuggingFace<br>• <strong>Specialties</strong>: Computer Vision (MTCNN, ArcFace), NLP, Deep Learning<br>• <strong>Deployment</strong>: Flask, REST APIs, AES-RSA Encryption"
+            id: 'skills',
+            topics: ['skills'],
+            keywords: ['skill', 'tech', 'stack', 'language', 'program', 'arsenal', 'tools', 'know', 'python', 'sql', 'libraries', 'frameworks'],
+            variations: [
+                "Shourya is a Machine Learning Engineer specializing in computer vision and deep learning. Here is his technical stack:<br><br>💻 <strong>Programming:</strong> Python, SQL<br>🧠 <strong>Frameworks:</strong> PyTorch, TensorFlow, Scikit-learn, Keras, HuggingFace Transformers<br>👁️ <strong>Computer Vision:</strong> OpenCV, MTCNN, ArcFace, Real-time Liveness Detection<br>☁️ <strong>Cloud & DevOps:</strong> Google Cloud Platform (GCP), Docker, REST APIs, Git/GitHub"
+            ],
+            chips: ["Tell me about NiyuktiSetu 🔐", "Tell me about Irrigo 🌾", "GATE DA 2026 Qualification 🎯"]
         },
         {
-            keywords: ['project', 'work', 'portfolio', 'build', 'made', 'created', 'niyukti', 'irrigo'],
-            answer: "His featured projects are:<br>• <strong>NiyuktiSetu</strong>: AI-based biometric authentication for recruitment (96.8% accuracy).<br>• <strong>Irrigo</strong>: IoT-driven crop and water management system (15-20% water saving).<br>Which one would you like to know more about?"
+            id: 'projects',
+            topics: ['general'],
+            keywords: ['project', 'work', 'portfolio', 'build', 'made', 'created', 'applications', 'systems'],
+            variations: [
+                "Shourya has built production-grade systems in biometric security and agricultural intelligence:<br><br>1. 🔐 <strong>NiyuktiSetu</strong>: AI-based government recruitment authentication system with a 96.8% TAR biometric pipeline.<br>2. 🌾 <strong>Irrigo</strong>: An intelligent IoT crop & water management system saving 15-20% water.<br><br>Which project would you like to explore in detail?"
+            ],
+            chips: ["Explain NiyuktiSetu 🔐", "Explain Irrigo 🌾", "Show me his patent 📜"]
         },
         {
-            keywords: ['niyukt', 'setu', 'biometric', 'government', 'recruitment', 'auth', 'face', 'accuracy'],
-            answer: "<strong>NiyuktiSetu</strong> is a production-grade biometric system. It uses a 3-stage pipeline: MTCNN for face detection, 128-D ArcFace embeddings for recognition, and a dual-path liveness classifier. It features AES-RSA encrypted inference for maximum security and is deployed via Flask REST APIs with sub-500ms latency."
+            id: 'niyuktisetu',
+            topics: ['niyuktisetu'],
+            keywords: ['niyukti', 'setu', 'recruitment', 'authentication', 'biometric', 'face', 'accuracy', 'embeddings', 'arcface', 'liveness', 'spoof', 'encryption'],
+            variations: [
+                "<strong>NiyuktiSetu</strong> is an AI-powered government recruitment authentication system. It secures exams via a 3-stage biometric pipeline:<br>• <strong>MTCNN</strong> for real-time face detection.<br>• <strong>512-D ArcFace/PyTorch</strong> embeddings for high-fidelity face recognition.<br>• Dual-path <strong>CNN liveness classifier</strong> to block spoofing attempts.<br><br>🔒 <strong>Security:</strong> All biometric & personal data is protected using hybrid <strong>AES-RSA encryption</strong> during inference and storage."
+            ],
+            card: {
+                title: "NiyuktiSetu Biometric Pipeline",
+                desc: "Achieved 96.8% True Acceptance Rate across 120 users & 96.2% spoof rejection. Deployed via Flask REST APIs with sub-500ms response latency.",
+                linkText: "View NiyuktiSetu Source Code",
+                url: "https://github.com/Shourya-here/Niyukti_setu"
+            },
+            chips: ["Show performance metrics 📊", "Explain Irrigo 🌾", "How was it deployed? ☁️"]
         },
         {
-            keywords: ['irrig', 'water', 'crop', 'management', 'iot', 'sensor', 'agriculture', 'farm'],
-            answer: "<strong>Irrigo</strong> is an agricultural intelligence system. It uses a real-time IoT pipeline with soil moisture, temperature, and humidity sensors. A multi-class ML model provides irrigation and fertilizer recommendations. It successfully filtered ~18% noisy readings in testing and reduced estimated water usage by 15-20%."
+            id: 'niyuktisetu_more',
+            topics: ['niyuktisetu'],
+            keywords: ['metric', 'performance', 'stat', 'deployment', 'latency', 'api', 'flask', 'hybrid', 'aes', 'rsa'],
+            variations: [
+                "For <strong>NiyuktiSetu</strong>:<br>• 📈 **Spoof Rejection:** 96.2% accuracy over 80 adversarial attempts (printed, digital spoof).<br>• ⚡ **Latency:** Sub-500ms response time per inference.<br>• 🛡️ **Encryption:** Biometric vectors are encrypted using 256-bit AES, and the key is wrapped with a 2048-bit RSA public key, ensuring complete privacy."
+            ],
+            chips: ["View GitHub repository 💻", "Explain Irrigo 🌾", "Technical Skills 💻"]
         },
         {
-            keywords: ['achieve', 'award', 'hackathon', 'sih', 'anveshna', 'finalist', 'recogni', 'competition'],
-            answer: "Shourya has an impressive record of recognition:<br>• 🏆 <strong>SIH 2024 Finalist</strong>: Smart India Hackathon<br>• 🔬 <strong>Anveshna 2024 Finalist</strong>: Research & Innovation competition<br>• 📄 <strong>IEEE NGISE Presenter</strong>: Conference speaker on Next Generation Information Systems"
+            id: 'irrigo',
+            topics: ['irrigo'],
+            keywords: ['irrig', 'water', 'crop', 'management', 'iot', 'sensor', 'agriculture', 'farm', 'random forest', 'predict', 'recommendation', 'soil', 'humidity'],
+            variations: [
+                "<strong>Irrigo</strong> is an AI-driven agricultural system that optimizes irrigation and fertilizer usage.<br>• Built a real-time <strong>3-sensor IoT data pipeline</strong> monitoring soil moisture, temperature, and humidity.<br>• Used <strong>NumPy & Pandas</strong> for time-series feature engineering at 5-minute intervals.<br>• Trained a multi-class <strong>Random Forest classifier</strong> (Scikit-learn) to recommend exact crop schedules, reducing estimated water consumption by 15-20%."
+            ],
+            card: {
+                title: "Irrigo Crop Optimizer",
+                desc: "Tuned on 6 simulated crop cycle datasets. Built as an end-to-end data pipeline prototyped in Jupyter Notebook and versioned via Git.",
+                linkText: "View Irrigo Source Code",
+                url: "https://github.com/Shourya-here/irrigo_model"
+            },
+            chips: ["Tell me about NiyuktiSetu 🔐", "Show research patent 📜", "Contact Shourya 📱"]
         },
         {
-            keywords: ['research', 'publish', 'book', 'paper', 'chapter', 'author', 'healthcare', 'genai', 'generative', 'publication', 'patent'],
-            answer: "Shourya is a published researcher and inventor!<br>• 📜 <strong>Patent</strong>: Data-Driven Agricultural Management System for Resource Optimization (2025).<br>• 📘 <strong>Book Chapter</strong>: \"Generative AI in Healthcare Application\" (CRC Press, 2026). <a href='https://www.taylorfrancis.com/chapters/edit/10.1201/9781003488255-11/generative-adversarial-networks-healthcare-applications-shourya-kumar-shreya-goel-shikha-agarwal-sanjay-kumar-sonker-ankit-bansal-ruchi-bansal' target='_blank' style='color:var(--accent-cyan)'>[View Here]</a><br>Which one would you like to hear more about?"
+            id: 'achievements',
+            topics: ['general'],
+            keywords: ['achieve', 'award', 'hackathon', 'sih', 'anveshna', 'finalist', 'recogni', 'competition', 'qualified', 'winner', 'gate'],
+            variations: [
+                "Here are Shourya's major professional highlights:<br><br>🎯 <strong>GATE DA 2026 Qualified</strong>: Qualified in Data Science & AI.<br>🏆 <strong>SIH 2024 Finalist</strong>: Finalist in the Smart India Hackathon.<br>🔬 <strong>Anveshna 2024 Finalist</strong>: Selected in the national research and innovation competition.<br>📄 <strong>IEEE NGISE Conference Speaker</strong>: Presented research on next-gen information systems."
+            ],
+            chips: ["GATE DA Details 🎯", "Show his publications 📘", "Tell me about his patent 📜"]
         },
         {
-            keywords: ['patent', 'agriculture', 'farming', 'resource', 'optimization', 'invention', '202511017657'],
-            answer: "Shourya's patent (No. 202511017657) is for a <strong>Data-Driven Agricultural Management System</strong>. It optimizes resources like water and fertilizers using IoT analytics, provides location-based crop suggestions, and connects farmers directly to buyers for fair pricing. It's a complete ecosystem for sustainable farming."
+            id: 'gate',
+            topics: ['general'],
+            keywords: ['gate', 'exam', 'da', 'qualified', 'data science', 'artificial intelligence', 'score', 'iit'],
+            variations: [
+                "Shourya successfully qualified the prestigious <strong>GATE DA 2026</strong> (Graduate Aptitude Test in Engineering) examination in the <strong>Data Science & Artificial Intelligence</strong> discipline. This demonstrates strong academic and practical fundamentals in mathematical modeling, machine learning, probability, statistics, and data structures."
+            ],
+            chips: ["Technical Skills 💻", "Education Background 🎓"]
         },
         {
-            keywords: ['edu', 'study', 'college', 'degree', 'university', 'btech', 'cgpa', 'graduat', 'student'],
-            answer: "Shourya is currently pursuing a <strong>B.Tech in Computer Science & IT</strong> (batch 2022-2026) at Dr. A.P.J. Abdul Kalam Technical University, Lucknow. He maintains a solid CGPA of <strong>7.38/10</strong>."
+            id: 'research',
+            topics: ['research'],
+            keywords: ['research', 'publish', 'book', 'paper', 'chapter', 'author', 'healthcare', 'genai', 'generative', 'publication', 'crc press', 'ieee', 'patent'],
+            variations: [
+                "Shourya is active in research at the intersection of AI, agriculture, and healthcare:<br><br>📘 <strong>Book Chapter (CRC Press, Jul 2026):</strong> \"Generative Artificial Intelligence in Healthcare Application\" (ISBN 9781032784847) covering synthetic medical data generation and LLM decision systems.<br>📜 <strong>Patent (Feb 2025):</strong> \"Data-Driven Agricultural Management System for Resource Optimization\" (Application No: 202511017657) optimizing crop recommendations and direct buyer marketplace pipelines."
+            ],
+            chips: ["View Patent Details 🌾", "View CRC Publication 📘", "SIH 2024 final 🏆"]
         },
         {
-            keywords: ['contact', 'email', 'phone', 'call', 'reach', 'hire', 'message', 'interview', 'linkedin'],
-            answer: "You can reach Shourya directly through these channels:<br>• 📧 Email: <a href='mailto:shourya.writes1@gmail.com' style='color:var(--accent-cyan)'>shourya.writes1@gmail.com</a><br>• 📱 Phone: +91 9410002547<br>• 💼 LinkedIn: <a href='https://linkedin.com/in/shourya-kumar-here/' target='_blank' style='color:var(--accent-cyan)'>shourya-kumar-here</a>"
+            id: 'patent_details',
+            topics: ['research'],
+            keywords: ['patent', 'farming', '202511017657', 'agricultural', 'optimize', 'system'],
+            variations: [
+                "Shourya's patent filed in February 2025 covers an intelligent farming system that integrates <strong>IoT sensors & AI</strong>. Key innovations include:<br>• Direct farmer-to-buyer connectivity to ensure fair crop pricing.<br>• Real-time local government policy awareness via automated text feeds.<br>• Data-driven location-based fertilizer and crop recommendations based on soil health metrics."
+            ],
+            card: {
+                title: "Agricultural Management System Patent",
+                desc: "Application No. 202511017657, filed to optimize farming resource allocation, pricing transparency, and advisory delivery.",
+                linkText: "View Patent Document",
+                url: "https://drive.google.com/file/d/1HBSP9cMlAOFvojX0eMOvHeo8dddAeJot/view"
+            },
+            chips: ["View Healthcare Publication 📘", "Tell me about Irrigo 🌾"]
         },
         {
-            keywords: ['intern', 'job', 'hiring', 'opportunity', 'career', 'availab', 'role', 'recruit'],
-            answer: "Shourya is actively seeking <strong>ML Engineer or Software Engineering internships</strong> where he can apply his computer vision and deep learning expertise. He's available for projects and professional collaborations. Feel free to contact him via email or LinkedIn!"
+            id: 'healthcare_details',
+            topics: ['research'],
+            keywords: ['crc', 'healthcare', 'isbn', 'generative', 'medical', 'synthetic', 'diagnostic'],
+            variations: [
+                "His CRC Press book chapter covering **Generative AI in Healthcare** discusses:<br>• 🏥 High-accuracy diagnostic GAN pipelines.<br>• 🔐 Generation of high-fidelity synthetic medical datasets to bypass patient privacy laws while training robust diagnostic models.<br>• 🤖 LLM-based intelligent clinical decision support systems for general practitioners."
+            ],
+            card: {
+                title: "Generative AI in Healthcare (CRC Press)",
+                desc: "Published Chapter (ISBN 9781032784847) discussing advanced clinical architectures, synthetic diagnostics, and privacy protection.",
+                linkText: "Taylor & Francis Publishing",
+                url: "https://www.taylorfrancis.com/chapters/edit/10.1201/9781003488255-11/generative-adversarial-networks-healthcare-applications-shourya-kumar-shreya-goel-shikha-agarwal-sanjay-kumar-sonker-ankit-bansal-ruchi-bansal"
+            },
+            chips: ["View Patent Details 📜", "Explain NiyuktiSetu 🔐"]
         },
         {
-            keywords: ['locat', 'where', 'city', 'live', 'noida', 'india', 'based'],
-            answer: "He is based in <strong>Noida, Uttar Pradesh, India</strong>."
+            id: 'education',
+            topics: ['education'],
+            keywords: ['edu', 'study', 'college', 'degree', 'university', 'btech', 'cgpa', 'graduat', 'student', 'aktu', 'lucknow', 'coursework'],
+            variations: [
+                "Shourya is pursuing a <strong>B.Tech in Computer Science and Information Technology</strong> (2022 – 2026) at <strong>Dr. A. P. J. Abdul Kalam Technical University (AKTU)</strong>, Lucknow, India.<br>📈 **Current CGPA:** 7.10/10<br>📚 **Core Coursework:** Artificial Intelligence & Machine Learning, Data Structures & Algorithms, Database Management Systems, Operating Systems, Computer Networks."
+            ],
+            chips: ["GATE DA 2026 🎯", "Projects 🚀", "Technical Skills 💻"]
         },
         {
-            keywords: ['hobby', 'interest', 'outside', 'life', 'write', 'fun'],
-            answer: "Beyond coding, Shourya is passionate about technology research and writing. You can see his analytical and writing skills in his published book chapter and research presentations."
+            id: 'contact',
+            topics: ['contact'],
+            keywords: ['contact', 'email', 'phone', 'call', 'reach', 'hire', 'message', 'interview', 'linkedin', 'gmail', 'mail'],
+            variations: [
+                "Let's connect! Here are Shourya's verified direct contact channels:<br><br>📧 **Email:** <a href='mailto:shourya.writes1@gmail.com'>shourya.writes1@gmail.com</a><br>📱 **Phone / WhatsApp:** +91 9410002547<br>💼 **LinkedIn:** <a href='https://linkedin.com/in/shourya-kumar-here/' target='_blank'>linkedin.com/in/shourya-kumar-here</a><br>💻 **GitHub:** <a href='https://github.com/Shourya-here' target='_blank'>github.com/Shourya-here</a><br>🧩 **LeetCode:** <a href='https://leetcode.com/u/shourya-here' target='_blank'>leetcode.com/u/shourya-here</a>"
+            ],
+            chips: ["Send him an email 📧", "Connect on LinkedIn 💼", "What roles is he seeking? 👔"]
         },
         {
-            keywords: ['github', 'git', 'repo', 'code', 'source'],
-            answer: "You can find his open-source work on GitHub: <a href='https://github.com/Shourya-here' target='_blank' style='color:var(--accent-cyan)'>github.com/Shourya-here</a>. It includes the code for his major ML projects."
+            id: 'hiring',
+            topics: ['contact'],
+            keywords: ['intern', 'job', 'hiring', 'opportunity', 'career', 'availab', 'role', 'seeking', 'position'],
+            variations: [
+                "Shourya is actively seeking <strong>ML Engineer or Software Engineering internships & entry-level roles (B.Tech Graduating April 2026)</strong>. He is fully set up to build secure inference systems, clean up IoT raw data, optimize heavy DL pipelines, and help teams build production-grade biometric or AI features."
+            ],
+            chips: ["How to contact him? 📱", "Show his resume stats 📊"]
         },
         {
-            keywords: ['site', 'navigat', 'dark', 'theme', 'color', 'animation', 'ux', 'design'],
-            answer: "This portfolio is designed with a premium dark theme and glassmorphism. It features an interactive particle system, scroll-triggered animations (Intersection Observer), and 3D tilt effects on project cards."
+            id: 'location',
+            topics: ['general'],
+            keywords: ['locat', 'where', 'city', 'live', 'noida', 'india', 'based', 'address'],
+            variations: [
+                "Shourya is currently based in <strong>Noida, Uttar Pradesh, India</strong> (Delhi NCR), and is open to hybrid, on-site, or remote roles."
+            ],
+            chips: ["How to contact him? 📱", "Technical Skills 💻"]
         },
         {
-            keywords: ['thanks', 'thank you', 'cool', 'awesome', 'good', 'nice'],
-            answer: "You're welcome! I'm glad I could help. Let me know if you have any more questions about Shourya's work!"
+            id: 'thanks',
+            topics: ['general'],
+            keywords: ['thanks', 'thank you', 'cool', 'awesome', 'good', 'nice', 'great', 'perfect', 'bye', 'exit'],
+            variations: [
+                "You're very welcome! I'm glad I could assist. Let me know if there's anything else you'd like to check about Shourya's portfolio!",
+                "Happy to help! 👍 Feel free to ask about any other project or download his contact info if you're done."
+            ],
+            chips: ["Say Hello 👋", "How to contact him? 📱"]
         }
     ];
 
-    const fallbackAnswer = "I'm not quite sure about that. Try asking about his <strong>skills</strong>, <strong>projects</strong>, <strong>education</strong>, or <strong>contact info</strong>!";
+    const fallbacks = [
+        "I'm not quite sure I understand that query. 🤖 Try asking about his **skills**, **projects (NiyuktiSetu, Irrigo)**, **patent/publications**, or **how to contact him**!",
+        "Hmm, I don't have that specific information in Shourya's database. Try asking: 'What projects has he built?' or 'Show me his contact details!'",
+        "Could you rephrase that? You can ask about Shourya's **GATE DA 2026 score**, his **biometric authentication system**, or his **agricultural patent**!"
+    ];
 
-    function toggleChat() {
-        chatbotWidget.classList.toggle('open');
-        if (chatbotWidget.classList.contains('open')) {
-            chatNotification.classList.remove('show');
-            setTimeout(() => chatInput.focus(), 300);
-        } else {
-            // Re-show notification when chat is closed
-            chatNotification.classList.add('show');
-        }
+    // Helpers
+    function sanitize(text) {
+        const temp = document.createElement('div');
+        temp.textContent = text;
+        return temp.innerHTML;
     }
 
-    function addMessage(text, sender) {
+    function formatTime() {
+        const now = new Date();
+        return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // Dynamic Suggestion Chips Renderer
+    function renderSuggestions(chips) {
+        chatDynamicSuggestions.innerHTML = '';
+        if (!chips || chips.length === 0) return;
+        
+        chips.forEach(chipText => {
+            const btn = document.createElement('button');
+            btn.className = 'suggestion-btn';
+            btn.textContent = chipText;
+            btn.addEventListener('click', () => {
+                chatInput.value = chipText.replace(/[🔐🌾💻📄🚀📊🏆📜📱👔📧💼👋]/g, '').trim();
+                handleUserInput();
+            });
+            chatDynamicSuggestions.appendChild(btn);
+        });
+    }
+
+    // Scroll to bottom of chat
+    function scrollToBottom() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Persistent Storage integration
+    function saveHistory() {
+        localStorage.setItem('shourya_chat_state', JSON.stringify({
+            history: state.history,
+            currentTopic: state.currentTopic
+        }));
+    }
+
+    function loadHistory() {
+        const saved = localStorage.getItem('shourya_chat_state');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                state.history = parsed.history || [];
+                state.currentTopic = parsed.currentTopic || 'general';
+                
+                // Redraw
+                chatMessages.innerHTML = '';
+                state.history.forEach(msg => {
+                    drawMessageElement(msg.text, msg.sender, msg.time, msg.card);
+                });
+                
+                // Show dynamic chips based on last bot reply or general greeting
+                const lastBotMsg = [...state.history].reverse().find(m => m.sender === 'bot');
+                if (lastBotMsg) {
+                    const match = qaDataset.find(item => item.variations.some(v => v.includes(lastBotMsg.text.substring(0, 15))));
+                    if (match && match.chips) {
+                        renderSuggestions(match.chips);
+                    } else {
+                        renderSuggestions(qaDataset[0].chips);
+                    }
+                } else {
+                    sendBotGreeting();
+                }
+            } catch (e) {
+                localStorage.removeItem('shourya_chat_state');
+                sendBotGreeting();
+            }
+        } else {
+            sendBotGreeting();
+        }
+        updateFooterCount();
+    }
+
+    function updateFooterCount() {
+        const count = state.history.length;
+        chatMsgCount.textContent = `${count} message${count !== 1 ? 's' : ''}`;
+    }
+
+    // Renders one message to the screen
+    function drawMessageElement(text, sender, time, cardData) {
         const msgDiv = document.createElement('div');
         msgDiv.className = `message ${sender}-message`;
-        msgDiv.innerHTML = text;
-
-        // Remove suggestions once a new message is sent
-        const suggestions = document.getElementById('chatSuggestions');
-        if (suggestions && sender === 'user') {
-            suggestions.style.display = 'none';
+        
+        let content = `<div>${text}</div>`;
+        
+        // Render rich card if present
+        if (cardData) {
+            content += `
+                <div class="chat-rich-card">
+                    <div class="chat-rich-card-title">🔗 ${sanitize(cardData.title)}</div>
+                    <div class="chat-rich-card-desc">${sanitize(cardData.desc)}</div>
+                    <a class="chat-rich-card-link" href="${cardData.url}" target="_blank">
+                        ${sanitize(cardData.linkText)}
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/>
+                        </svg>
+                    </a>
+                </div>
+            `;
         }
-
+        
+        content += `<span class="msg-time">${time}</span>`;
+        msgDiv.innerHTML = content;
+        
         chatMessages.appendChild(msgDiv);
         scrollToBottom();
+    }
+
+    // Add new message to history array and screen
+    function pushMessage(text, sender, card = null) {
+        const time = formatTime();
+        const msg = { text, sender, time, card };
+        state.history.push(msg);
+        drawMessageElement(text, sender, time, card);
+        saveHistory();
+        updateFooterCount();
     }
 
     function showTypingIndicator() {
@@ -572,75 +792,212 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function removeTypingIndicator() {
-        const indicator = document.getElementById('typingIndicator');
-        if (indicator) {
-            indicator.remove();
+        const ind = document.getElementById('typingIndicator');
+        if (ind) ind.remove();
+    }
+
+    // Advanced Tokenizer and Scoring Engine
+    function getBestNLPResponse(userInput) {
+        const cleanInput = userInput.toLowerCase().replace(/[^\w\s]/g, ' ');
+        const tokens = cleanInput.split(/\s+/).filter(t => t.length > 1);
+        
+        // Synonym mappings
+        const synonymMap = {
+            'cv': 'contact', 'resume': 'contact', 'mail': 'contact', 'email': 'contact',
+            'letter': 'contact', 'phone': 'contact', 'call': 'contact', 'number': 'contact',
+            'mobile': 'contact', 'whatsapp': 'contact', 'linkedin': 'contact',
+            'github': 'contact', 'git': 'contact', 'repo': 'contact', 'code': 'contact',
+            'leet': 'contact', 'leetcode': 'contact', 'hiring': 'hiring', 'job': 'hiring',
+            'intern': 'hiring', 'internship': 'hiring', 'role': 'hiring', 'career': 'hiring',
+            'location': 'location', 'live': 'location', 'address': 'location', 'noida': 'location',
+            'delhi': 'location', 'place': 'location', 'where': 'location',
+            'niyuktisetu': 'niyuktisetu', 'recruitment': 'niyuktisetu', 'biometric': 'niyuktisetu',
+            'liveness': 'niyuktisetu', 'face': 'niyuktisetu', 'spoof': 'niyuktisetu',
+            'irrigo': 'irrigo', 'water': 'irrigo', 'crop': 'irrigo', 'farm': 'irrigo',
+            'agriculture': 'irrigo', 'soil': 'irrigo', 'iot': 'irrigo',
+            'patent': 'research', 'paper': 'research', 'publish': 'research',
+            'publication': 'research', 'crc': 'research', 'chapter': 'research',
+            'gate': 'gate', 'da': 'gate', 'score': 'gate', 'exam': 'gate',
+            'marks': 'gate', 'aktu': 'education', 'college': 'education',
+            'degree': 'education', 'cgpa': 'education', 'marksheet': 'education'
+        };
+
+        // Context resolve (for short ambiguous phrases e.g. "tell me more", "code", "show repository")
+        const isFollowUp = tokens.includes('more') || tokens.includes('code') || tokens.includes('explain') || tokens.includes('show') || tokens.includes('repo') || tokens.includes('link');
+        if (isFollowUp && state.currentTopic !== 'general') {
+            const contextMatches = qaDataset.filter(item => item.topics.includes(state.currentTopic));
+            // Find specific sub-intent
+            if (tokens.includes('metric') || tokens.includes('stat') || tokens.includes('performance') || tokens.includes('latency')) {
+                const subMatch = contextMatches.find(c => c.id.includes('more'));
+                if (subMatch) return subMatch;
+            }
+            if (contextMatches.length > 0) {
+                // Return primary context match or detailed subtopic
+                return contextMatches[0];
+            }
         }
-    }
 
-    function scrollToBottom() {
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
+        let bestMatch = null;
+        let highestScore = 0;
 
-    function getBotResponse(input) {
-        const lowerInput = input.toLowerCase();
-        let bestMatch = fallbackAnswer;
-        let maxMatches = 0;
-
-        for (const item of qaDatabase) {
-            let matchCount = 0;
-            for (const keyword of item.keywords) {
-                if (lowerInput.includes(keyword)) {
-                    matchCount++;
+        qaDataset.forEach(item => {
+            let score = 0;
+            
+            // Score based on keywords
+            item.keywords.forEach(kw => {
+                if (cleanInput.includes(kw)) {
+                    score += 3;
                 }
+            });
+
+            // Score based on tokens & synonyms
+            tokens.forEach(tok => {
+                if (item.keywords.includes(tok)) {
+                    score += 2;
+                }
+                const syn = synonymMap[tok];
+                if (syn && item.topics.includes(syn)) {
+                    score += 2;
+                }
+            });
+
+            // Score based on current topic context
+            if (item.topics.includes(state.currentTopic)) {
+                score += 1;
             }
-            if (matchCount > maxMatches) {
-                maxMatches = matchCount;
-                bestMatch = item.answer;
+
+            if (score > highestScore) {
+                highestScore = score;
+                bestMatch = item;
             }
+        });
+
+        // Threshold matching score
+        if (highestScore >= 2) {
+            return bestMatch;
         }
-        return bestMatch;
+
+        return null;
+    }
+
+    function sendBotGreeting() {
+        const greetingData = qaDataset[0];
+        const randomGreeting = greetingData.variations[Math.floor(Math.random() * greetingData.variations.length)];
+        pushMessage(randomGreeting, 'bot');
+        renderSuggestions(greetingData.chips);
     }
 
     function handleUserInput() {
+        if (state.isThinking) return;
         const text = chatInput.value.trim();
         if (!text) return;
 
-        // Reset input
+        // Reset input and counter
         chatInput.value = '';
+        chatCharCount.textContent = '0/300';
+        chatCharCount.style.color = '';
 
-        // User message
-        addMessage(text, 'user');
+        // Add user message
+        pushMessage(text, 'user');
 
-        // Show typing indicator
+        state.isThinking = true;
         showTypingIndicator();
 
-        // Simulate thinking delay based on response length
-        const response = getBotResponse(text);
-        const delay = Math.min(Math.max(response.length * 15, 600), 1500);
+        // Process response
+        const match = getBestNLPResponse(text);
+        
+        // Dynamic thinking latency simulation
+        const responseText = match 
+            ? match.variations[Math.floor(Math.random() * match.variations.length)] 
+            : fallbacks[Math.floor(Math.random() * fallbacks.length)];
+            
+        const delay = Math.min(Math.max(responseText.length * 12, 600), 1600);
 
         setTimeout(() => {
             removeTypingIndicator();
-            addMessage(response, 'bot');
+            state.isThinking = false;
+            
+            if (match) {
+                // Update conversation context topic
+                if (match.topics[0] !== 'general') {
+                    state.currentTopic = match.topics[0];
+                }
+                pushMessage(responseText, 'bot', match.card || null);
+                renderSuggestions(match.chips);
+            } else {
+                pushMessage(responseText, 'bot');
+                renderSuggestions(["What are his technical skills? 💻", "Explain NiyuktiSetu 🔐", "Explain Irrigo 🌾", "How to contact him? 📱"]);
+            }
+
+            // If minimized, increment unread badge count
+            if (!chatbotWidget.classList.contains('open')) {
+                state.unreadCount++;
+                chatUnreadBadge.textContent = state.unreadCount;
+                chatUnreadBadge.style.display = 'flex';
+            }
         }, delay);
     }
 
-    // Event Listeners for Chat
+    // Toggle Chat Window
+    function toggleChat() {
+        const isOpen = chatbotWidget.classList.contains('open');
+        
+        if (isOpen) {
+            chatbotWidget.classList.remove('open');
+            chatNotification.classList.add('show');
+        } else {
+            chatbotWidget.classList.add('open');
+            chatNotification.classList.remove('show');
+            
+            // Clear unread counts
+            state.unreadCount = 0;
+            chatUnreadBadge.style.display = 'none';
+            
+            setTimeout(() => chatInput.focus(), 300);
+        }
+    }
+
+    // UI Listeners
     chatToggle.addEventListener('click', toggleChat);
-
     chatSendBtn.addEventListener('click', handleUserInput);
-
+    
     chatInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             handleUserInput();
         }
     });
 
-    suggestionBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            chatInput.value = btn.textContent;
-            handleUserInput();
-        });
+    // Real-time Character Counter
+    chatInput.addEventListener('input', () => {
+        const len = chatInput.value.length;
+        chatCharCount.textContent = `${len}/300`;
+        if (len >= 270) {
+            chatCharCount.style.color = '#ef4444';
+        } else {
+            chatCharCount.style.color = '';
+        }
     });
+
+    // Clear Conversation History
+    chatClearBtn.addEventListener('click', () => {
+        if (confirm("Are you sure you want to clear your conversation history?")) {
+            localStorage.removeItem('shourya_chat_state');
+            state.history = [];
+            state.currentTopic = 'general';
+            chatMessages.innerHTML = '';
+            sendBotGreeting();
+            updateFooterCount();
+        }
+    });
+
+    // Init Chat History
+    loadHistory();
+
+    // Auto notification after 5 seconds
+    setTimeout(() => {
+        if (!chatbotWidget.classList.contains('open') && state.history.length <= 1) {
+            chatNotification.classList.add('show');
+        }
+    }, 5000);
 
 });
